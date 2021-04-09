@@ -1,0 +1,59 @@
+How to install NGINX and setup reverse proxy?
+
+=> Login to your domain provider account and open the domain. Add A DNS record and redirect your domain to the desired IP.
+
+=> Install NGINX => sudo apt install nginx
+
+=> Remove default configuration files
+sudo rm /etc/nginx/sites-enabled/default
+sudo rm /etc/nginx/sites-available/default
+
+=> Create nginx configuration file inside /etc/nginx/sites-available/ directory
+sudo nano /etc/nginx/sites-available/odoo.conf
+
+=> Copy and paste the following code in the configuration file:
+upstream odoo8134 {
+     server 127.0.0.1:8134;
+}
+
+server {
+     listen 80;
+     server_name example.domainname.com;
+
+     access_log /var/log/nginx/odoo_access.log;
+     error_log /var/log/nginx/odoo_error.log;
+
+     proxy_read_timeout 720s;
+     proxy_connect_timeout 720s;
+     proxy_send_timeout 720s;
+     proxy_set_header X-Forwarded-Host $host;
+     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+     proxy_set_header X-Forwarded-Proto $scheme;
+     proxy_set_header X-Real-IP $remote_addr;
+
+     location / {
+        proxy_redirect off;
+        proxy_pass http://odoo8134;
+     }
+
+     location ~* /web/static/ {
+         proxy_cache_valid 200 90m;
+         proxy_buffering on;
+         expires 864000;
+         proxy_pass http://odoo8134;
+     }
+
+     gzip_types text/css text/less text/plain text/xml application/xml application/json application/javascript;
+     gzip on;
+ }
+
+=> Hit Ctrl+X followed by Y and Enter to save the file and exit.
+
+=> Run the following command to symlink the file you just created with /etc/nginx/sites-enabled/ directory
+sudo ln -s /etc/nginx/sites-available/odoo.conf /etc/nginx/sites-enabled/odoo.conf
+
+=> Check the configuration and restart if configuration are fine. Run the following two commands
+sudo nginx -t
+sudo service nginx restart
+
+This is it. Domain has been redirected. Now follow the steps to configure and install SSL
